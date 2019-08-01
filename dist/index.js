@@ -1,0 +1,132 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const util = require("util");
+const Cookies = require("cookies");
+const utils_1 = require("@nelts/utils");
+class Context extends utils_1.EventEmitter {
+    constructor(app, req, res, { cookie, params, logger }) {
+        super();
+        this.app = app;
+        this.req = req;
+        this.res = res;
+        this.params = params;
+        this.logger = logger;
+        this.cookies = new Cookies(this.req, this.res, {
+            keys: cookie || ['nelts', 'context'],
+            secure: this.request.secure,
+        });
+    }
+    get query() {
+        return this.request.query;
+    }
+    get header() {
+        return this.request.header;
+    }
+    get headers() {
+        return this.request.headers;
+    }
+    get accept() {
+        return this.request.accept;
+    }
+    get url() {
+        return this.request.url;
+    }
+    get ip() {
+        return this.request.ip;
+    }
+    get body() {
+        return this.response.body;
+    }
+    set body(value) {
+        this.response.body = value;
+    }
+    get status() {
+        return this.response.status;
+    }
+    set status(value) {
+        this.response.status = value;
+    }
+    get method() {
+        return this.req.method;
+    }
+    get length() {
+        return this.response.length;
+    }
+    set length(value) {
+        this.response.length = value;
+    }
+    get message() {
+        return this.response.message;
+    }
+    set message(value) {
+        this.response.message = value;
+    }
+    get type() {
+        return this.response.type;
+    }
+    set type(value) {
+        this.response.type = value;
+    }
+    set lastModified(val) {
+        this.response.lastModified = val;
+    }
+    get lastModified() {
+        return this.response.lastModified;
+    }
+    set etag(val) {
+        this.response.etag = val;
+    }
+    get etag() {
+        return this.response.etag;
+    }
+    get headerSent() {
+        return this.response.headerSent;
+    }
+    set(field, val) {
+        this.response.set(field, val);
+    }
+    get(field) {
+        return this.request.get(field);
+    }
+    error(message, code) {
+        const error = typeof message === 'string' ? new Error(message) : message;
+        error.status = code || 500;
+        return error;
+    }
+    throw(message, code) {
+        throw this.error(message, code);
+    }
+    onerror(err) {
+        if (!(err instanceof Error))
+            throw new TypeError(util.format('non-error thrown: %j', err));
+        if (404 == err.status || err.expose)
+            return;
+        if (this.silent)
+            return;
+        const msg = err.stack || err.toString();
+        if (this.logger) {
+            this.logger.error('');
+            this.logger.error(msg.replace(/^/gm, '  '));
+            this.logger.error('');
+        }
+    }
+    redirect(url, alt) {
+        this.response.redirect(url, alt);
+    }
+    attachment(filename, options) {
+        this.response.attachment(filename, options);
+    }
+    is(types) {
+        return this.response.is(types);
+    }
+    append(field, val) {
+        return this.response.append(field, val);
+    }
+    flushHeaders() {
+        return this.response.flushHeaders();
+    }
+    remove(value) {
+        return this.response.remove(value);
+    }
+}
+exports.default = Context;
