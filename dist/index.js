@@ -4,17 +4,26 @@ const util = require("util");
 const Cookies = require("cookies");
 const utils_1 = require("@nelts/utils");
 class Context extends utils_1.EventEmitter {
-    constructor(app, req, res, { cookie, params, logger }) {
+    constructor(app, req, res, { cookie, logger }) {
         super();
         this.app = app;
         this.req = req;
         this.res = res;
-        this.params = params;
         this.logger = logger;
-        this.cookies = new Cookies(this.req, this.res, {
-            keys: cookie || ['nelts', 'context'],
-            secure: this.request.secure,
+        if (cookie) {
+            this.cookies = new Cookies(this.req, this.res, {
+                keys: cookie || ['nelts', 'context'],
+                secure: this.request.secure,
+            });
+        }
+    }
+    setParams(value) {
+        Object.defineProperty(this, 'params', {
+            get() {
+                return Object.freeze(value);
+            }
         });
+        return this;
     }
     get query() {
         return this.request.query;

@@ -7,7 +7,7 @@ import { EventEmitter } from '@nelts/utils';
 import Request from './request';
 import Response, { fieldObjectSchema, fieldValueSchema } from './response';
 import { Logger } from 'log4js';
-declare type RequestParamsSchema = {
+export declare type RequestParamsSchema = {
     [schema: string]: string;
 };
 export interface ContextError extends Error {
@@ -17,21 +17,21 @@ export interface ContextError extends Error {
 }
 export interface ContextOptions {
     cookie?: string[] | Keygrip;
-    params?: RequestParamsSchema;
     logger?: Logger;
 }
 export default class Context<APP, BODY = any, FILE = any> extends EventEmitter {
     readonly app: APP;
     readonly req: IncomingMessage;
     readonly res: ServerResponse;
-    readonly params: RequestParamsSchema;
     readonly cookies: Cookies;
     readonly request: Request<APP, this, BODY, FILE>;
     readonly response: Response<APP, this, BODY, FILE>;
     readonly logger: Logger;
+    params: RequestParamsSchema;
     silent: boolean;
     respond: boolean;
-    constructor(app: APP, req: IncomingMessage, res: ServerResponse, { cookie, params, logger }: ContextOptions);
+    constructor(app: APP, req: IncomingMessage, res: ServerResponse, { cookie, logger }: ContextOptions);
+    setParams(value: RequestParamsSchema): this;
     readonly query: import("querystring").ParsedUrlQuery;
     readonly header: import("http").IncomingHttpHeaders;
     readonly headers: import("http").IncomingHttpHeaders;
@@ -59,4 +59,3 @@ export default class Context<APP, BODY = any, FILE = any> extends EventEmitter {
     flushHeaders(): void;
     remove(value: string): void;
 }
-export {};
