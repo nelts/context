@@ -58,4 +58,5 @@ export default class Context<APP, BODY = any, FILE = any> extends EventEmitter {
     append(field: string, val: any): void;
     flushHeaders(): void;
     remove(value: string): void;
+    responseBody(): void | ServerResponse;
 }

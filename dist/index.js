@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const util = require("util");
 const Cookies = require("cookies");
 const utils_1 = require("@nelts/utils");
+const statuses = require("statuses");
+const utils_2 = require("@nelts/utils");
+const Stream = require("stream");
 class Context extends utils_1.EventEmitter {
     constructor(app, req, res, { cookie, logger }) {
         super();
@@ -136,6 +139,48 @@ class Context extends utils_1.EventEmitter {
     }
     remove(value) {
         return this.response.remove(value);
+    }
+    responseBody() {
+        const ctx = this;
+        if (false === ctx.respond)
+            return;
+        const res = ctx.res;
+        let body = ctx.body;
+        const code = ctx.status;
+        if (statuses.empty[code]) {
+            ctx.body = null;
+            return res.end();
+        }
+        if ('HEAD' == ctx.method) {
+            if (!res.headersSent && utils_2.IsJson(body)) {
+                ctx.length = Buffer.byteLength(JSON.stringify(body));
+            }
+            return res.end();
+        }
+        if (null == body) {
+            if (ctx.req.httpVersionMajor >= 2) {
+                body = String(code);
+            }
+            else {
+                body = ctx.message || String(code);
+            }
+            if (!res.headersSent) {
+                ctx.type = 'text';
+                ctx.length = Buffer.byteLength(body);
+            }
+            return res.end(body);
+        }
+        if (Buffer.isBuffer(body))
+            return res.end(body);
+        if ('string' == typeof body)
+            return res.end(body);
+        if (body instanceof Stream)
+            return body.pipe(res);
+        body = JSON.stringify(body);
+        if (!res.headersSent) {
+            ctx.length = Buffer.byteLength(body);
+        }
+        res.end(body);
     }
 }
 exports.default = Context;

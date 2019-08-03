@@ -6,6 +6,9 @@ import { EventEmitter } from '@nelts/utils';
 import Request from './request';
 import Response, { fieldObjectSchema, fieldValueSchema } from './response';
 import { Logger } from 'log4js';
+import * as statuses from 'statuses';
+import { IsJson as isJSON } from '@nelts/utils';
+import * as Stream from 'stream';
 
 export type RequestParamsSchema = { [schema: string]: string };
 
@@ -196,5 +199,55 @@ export default class Context<APP, BODY = any, FILE = any> extends EventEmitter {
 
   remove(value: string) {
     return this.response.remove(value);
+  }
+
+  responseBody() {
+    const ctx = this;
+    // allow bypassing koa
+    if (false === ctx.respond) return;
+
+    const res = ctx.res;
+    let body = ctx.body;
+    const code = ctx.status;
+
+    // ignore body
+    if (statuses.empty[code]) {
+      // strip headers
+      ctx.body = null;
+      return res.end();
+    }
+
+    if ('HEAD' == ctx.method) {
+      if (!res.headersSent && isJSON(body)) {
+        ctx.length = Buffer.byteLength(JSON.stringify(body));
+      }
+      return res.end();
+    }
+
+    // status body
+    if (null == body) {
+      if (ctx.req.httpVersionMajor >= 2) {
+        body = String(code);
+      } else {
+        body = ctx.message || String(code);
+      }
+      if (!res.headersSent) {
+        ctx.type = 'text';
+        ctx.length = Buffer.byteLength(body);
+      }
+      return res.end(body);
+    }
+
+    // responses
+    if (Buffer.isBuffer(body)) return res.end(body);
+    if ('string' == typeof body) return res.end(body);
+    if (body instanceof Stream) return body.pipe(res);
+
+    // body: json
+    body = JSON.stringify(body);
+    if (!res.headersSent) {
+      ctx.length = Buffer.byteLength(body);
+    }
+    res.end(body);
   }
 }
