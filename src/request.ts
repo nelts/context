@@ -20,9 +20,9 @@ export default class Request<M, C extends Context<M, B, F>, B = any, F = any> {
   public body: B;
   public files: F;
   constructor(ctx: C, req: IncomingMessage) {
-    const parsed = url.parse(this.url, true);
     this.ctx = ctx;
     this.req = req;
+    const parsed = url.parse(this.url, true);
     this.search = parsed.search;
     this.query = Object.freeze(parsed.query || {});
     this.pathname = parsed.pathname;

@@ -5,9 +5,9 @@ const accepts = require("accepts");
 const typeis = require("type-is");
 class Request {
     constructor(ctx, req) {
-        const parsed = url.parse(this.url, true);
         this.ctx = ctx;
         this.req = req;
+        const parsed = url.parse(this.url, true);
         this.search = parsed.search;
         this.query = Object.freeze(parsed.query || {});
         this.pathname = parsed.pathname;
