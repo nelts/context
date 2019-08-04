@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const util = require("util");
 const Cookies = require("cookies");
 const utils_1 = require("@nelts/utils");
+const request_1 = require("./request");
+const response_1 = require("./response");
 const statuses = require("statuses");
 const utils_2 = require("@nelts/utils");
 const Stream = require("stream");
@@ -13,6 +15,8 @@ class Context extends utils_1.EventEmitter {
         this.req = req;
         this.res = res;
         this.logger = logger;
+        this.request = new request_1.default(this, req);
+        this.response = new response_1.default(this, res);
         if (cookie) {
             this.cookies = new Cookies(this.req, this.res, {
                 keys: cookie || ['nelts', 'context'],

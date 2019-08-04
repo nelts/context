@@ -40,6 +40,8 @@ export default class Context<APP, BODY = any, FILE = any> extends EventEmitter {
     this.req = req;
     this.res = res;
     this.logger = logger;
+    this.request = new Request(this, req);
+    this.response = new Response(this, res);
     if (cookie) {
       this.cookies = new Cookies(this.req, this.res, {
         keys: cookie || ['nelts', 'context'],
