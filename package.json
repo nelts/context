@@ -1,6 +1,6 @@
 {
   "name": "@nelts/context",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "utils for nelts",
   "main": "dist/index.js",
   "source": "dist",
