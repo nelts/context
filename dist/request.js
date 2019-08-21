@@ -5,34 +5,68 @@ const accepts = require("accepts");
 const typeis = require("type-is");
 class Request {
     constructor(ctx, req) {
+        this._parsed = null;
+        this._type = null;
+        this._length = null;
+        this._ips = [];
+        this._host = null;
+        this._hostname = null;
         this.ctx = ctx;
         this.req = req;
-        const parsed = url.parse(this.url, true);
-        this.search = parsed.search;
-        this.query = Object.freeze(parsed.query || {});
-        this.pathname = parsed.pathname;
-        this.path = parsed.path;
-        this.href = parsed.href;
-        let host = this.get('X-Forwarded-Host');
-        if (!host) {
-            if (this.req.httpVersionMajor >= 2)
-                host = this.get(':authority');
-            if (!host)
-                host = this.get('Host');
+    }
+    get parsed() {
+        if (!this._parsed) {
+            const parsed = url.parse(this.url, true);
+            parsed.query = Object.freeze(parsed.query || {});
         }
-        if (!host) {
-            this.host = '';
-            this.hostname = '';
-        }
-        else {
-            this.host = host.split(/\s*,\s*/, 1)[0];
-            if ('[' == this.host[0]) {
-                this.hostname = url.parse(`${this.origin}${this.url}`).hostname || '';
+        return this._parsed;
+    }
+    get host() {
+        if (!this._host) {
+            let host = this.get('X-Forwarded-Host');
+            if (!host) {
+                if (this.req.httpVersionMajor >= 2)
+                    host = this.get(':authority');
+                if (!host)
+                    host = this.get('Host');
+            }
+            if (!host) {
+                this._host = '';
             }
             else {
-                this.hostname = host.split(':', 1)[0];
+                this._host = host.split(/\s*,\s*/, 1)[0];
             }
         }
+        return this._host;
+    }
+    get hostname() {
+        if (!this._hostname) {
+            if (this.host === '') {
+                this._hostname = '';
+            }
+            else if ('[' == this.host[0]) {
+                this._hostname = url.parse(`${this.origin}${this.url}`).hostname || '';
+            }
+            else {
+                this._hostname = this.host.split(':', 1)[0];
+            }
+        }
+        return this._hostname;
+    }
+    get pathname() {
+        return this.parsed.pathname;
+    }
+    get path() {
+        return this.parsed.path;
+    }
+    get href() {
+        return this.req.url;
+    }
+    get search() {
+        return this.parsed.search;
+    }
+    get query() {
+        return this.parsed.query;
     }
     get accept() {
         return this._accept || (this._accept = accepts(this.req));
@@ -47,8 +81,11 @@ class Request {
         return this.ctx.response;
     }
     get protocol() {
-        const proto = this.get('X-Forwarded-Proto');
-        return proto ? proto.split(/\s*,\s*/, 1)[0] : 'http';
+        if (!this._protocol) {
+            const proto = this.get('X-Forwarded-Proto');
+            this._protocol = proto ? proto.split(/\s*,\s*/, 1)[0] : (this.parsed.protocol || 'http');
+        }
+        return this._protocol;
     }
     get url() {
         return this.req.url;
@@ -57,25 +94,40 @@ class Request {
         return `${this.protocol}://${this.host}`;
     }
     get type() {
-        const type = this.get('Content-Type');
-        if (!type)
-            return '';
-        return type.split(';')[0];
+        if (this._type === null) {
+            const type = this.get('Content-Type');
+            if (!type) {
+                this._type = '';
+            }
+            else {
+                this._type = type.split(';')[0];
+            }
+        }
+        return this._type;
     }
     get length() {
-        const len = this.get('Content-Length');
-        if (len == '')
-            return;
-        return ~~len;
+        if (!this._length) {
+            const len = this.get('Content-Length');
+            if (len == '') {
+                this._length = 0;
+            }
+            else {
+                this._length = ~~len;
+            }
+        }
+        return this._length;
     }
     get secure() {
         return 'https' == this.protocol;
     }
     get ips() {
-        const val = this.get('X-Forwarded-For');
-        return val
-            ? val.split(/\s*,\s*/)
-            : [];
+        if (!this._ips) {
+            const val = this.get('X-Forwarded-For');
+            this._ips = val
+                ? val.split(/\s*,\s*/)
+                : [];
+        }
+        return this._ips;
     }
     get ip() {
         if (!this._ip) {

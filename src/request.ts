@@ -1,5 +1,4 @@
 import * as url from 'url';
-import * as querystring from 'querystring';
 import * as accepts from 'accepts';
 import * as typeis from 'type-is';
 import { IncomingMessage } from "http";
@@ -8,43 +7,77 @@ import Context from './index';
 export default class Request<M, C extends Context<M, B, F>, B = any, F = any> {
   private _ip: string;
   private _accept: accepts.Accepts;
+  private _parsed: url.UrlWithParsedQuery = null;
+  private _protocol: string;
+  private _type: string = null;
+  private _length: number = null;
+  private _ips: string[] = [];
+  private _host: string = null;
+  private _hostname: string = null;
   public readonly ctx: C;
   public readonly req: IncomingMessage;
-  public readonly search: string;
-  public readonly query: querystring.ParsedUrlQuery;
-  public readonly pathname: string;
-  public readonly path: string;
-  public readonly href: string;
-  public readonly host: string;
-  public readonly hostname: string;
   public body: B;
   public files: F;
   constructor(ctx: C, req: IncomingMessage) {
     this.ctx = ctx;
     this.req = req;
-    const parsed = url.parse(this.url, true);
-    this.search = parsed.search;
-    this.query = Object.freeze(parsed.query || {});
-    this.pathname = parsed.pathname;
-    this.path = parsed.path;
-    this.href = parsed.href;
+  }
 
-    let host = this.get('X-Forwarded-Host') as string;
-    if (!host) {
-      if (this.req.httpVersionMajor >= 2) host = this.get(':authority') as string;
-      if (!host) host = this.get('Host') as string;
+  private get parsed() {
+    if (!this._parsed) {
+      const parsed = url.parse(this.url, true);
+      parsed.query = Object.freeze(parsed.query || {});
     }
-    if (!host) {
-      this.host = '';
-      this.hostname = '';
-    } else {
-      this.host = host.split(/\s*,\s*/, 1)[0];
-      if ('[' == this.host[0]) {
-        this.hostname = url.parse(`${this.origin}${this.url}`).hostname || '';
+    return this._parsed;
+  }
+
+  get host() {
+    if (!this._host) {
+      let host = this.get('X-Forwarded-Host') as string;
+      if (!host) {
+        if (this.req.httpVersionMajor >= 2) host = this.get(':authority') as string;
+        if (!host) host = this.get('Host') as string;
+      }
+      if (!host) {
+        this._host = '';
       } else {
-        this.hostname = host.split(':', 1)[0];
+        this._host = host.split(/\s*,\s*/, 1)[0];
       }
     }
+    return this._host;
+  }
+
+  get hostname() {
+    if (!this._hostname) {
+      if (this.host === '') {
+        this._hostname = '';
+      } else if ('[' == this.host[0]) {
+        this._hostname = url.parse(`${this.origin}${this.url}`).hostname || '';
+      } else {
+        this._hostname = this.host.split(':', 1)[0];
+      }
+    }
+    return this._hostname;
+  }
+
+  get pathname() {
+    return this.parsed.pathname;
+  }
+
+  get path() {
+    return this.parsed.path;
+  }
+
+  get href() {
+    return this.req.url;
+  }
+
+  get search() {
+    return this.parsed.search;
+  }
+
+  get query() {
+    return this.parsed.query;
   }
 
   get accept() {
@@ -64,8 +97,11 @@ export default class Request<M, C extends Context<M, B, F>, B = any, F = any> {
   }
 
   get protocol() {
-    const proto = this.get('X-Forwarded-Proto') as string;
-    return proto ? proto.split(/\s*,\s*/, 1)[0] : 'http';
+    if (!this._protocol) {
+      const proto = this.get('X-Forwarded-Proto') as string;
+      this._protocol = proto ? proto.split(/\s*,\s*/, 1)[0] : (this.parsed.protocol || 'http');
+    }
+    return this._protocol;
   }
 
   get url() {
@@ -77,15 +113,27 @@ export default class Request<M, C extends Context<M, B, F>, B = any, F = any> {
   }
 
   get type() {
-    const type = this.get('Content-Type') as string;
-    if (!type) return '';
-    return type.split(';')[0];
+    if (this._type === null) {
+      const type = this.get('Content-Type') as string;
+      if (!type) {
+        this._type = '';
+      } else {
+        this._type = type.split(';')[0];
+      }
+    }
+    return this._type;
   }
 
   get length() {
-    const len = this.get('Content-Length');
-    if (len == '') return;
-    return ~~len;
+    if (!this._length) {
+      const len = this.get('Content-Length');
+      if (len == '')  {
+        this._length = 0;
+      } else {
+        this._length = ~~len;
+      }
+    }
+    return this._length;
   }
 
   get secure() {
@@ -93,11 +141,13 @@ export default class Request<M, C extends Context<M, B, F>, B = any, F = any> {
   }
 
   get ips() {
-    // const proxy = this.app.proxy;
-    const val = this.get('X-Forwarded-For') as string;
-    return val
-      ? val.split(/\s*,\s*/)
-      : [];
+    if (!this._ips) {
+      const val = this.get('X-Forwarded-For') as string;
+      this._ips = val
+        ? val.split(/\s*,\s*/)
+        : [];
+    }
+    return this._ips;
   }
 
   get ip() {
