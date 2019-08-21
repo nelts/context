@@ -18,6 +18,7 @@ class Request {
         if (!this._parsed) {
             const parsed = url.parse(this.url, true);
             parsed.query = Object.freeze(parsed.query || {});
+            this._parsed = parsed;
         }
         return this._parsed;
     }
@@ -83,7 +84,7 @@ class Request {
     get protocol() {
         if (!this._protocol) {
             const proto = this.get('X-Forwarded-Proto');
-            this._protocol = proto ? proto.split(/\s*,\s*/, 1)[0] : (this.parsed.protocol || 'http');
+            this._protocol = proto ? proto.split(/\s*,\s*/, 1)[0] : 'http';
         }
         return this._protocol;
     }
