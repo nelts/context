@@ -37,7 +37,7 @@
     "content-disposition": "^0.5.3",
     "cookies": "^0.7.3",
     "keygrip": "^1.1.0",
-    "log4js": "^4.5.1",
+    "log4js": "^6.4.0",
     "on-finished": "^2.3.0",
     "statuses": "^1.5.0",
     "type-is": "^1.6.18"
